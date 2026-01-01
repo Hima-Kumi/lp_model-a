@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ja">
 <head>
-  <!-- Revision: 改訂No.002 -->
+  <!-- Revision: 改訂No.002（運用分離版 / Public API連携） -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Coffee & Restaurant – マイルド</title>
@@ -30,7 +30,7 @@
     p{ margin:.6em 0; }
     small,.muted{ color:var(--text-dim); }
 
-    /* ===== Header（2段ロゴ＋リンク群／店名フォント逆転はPC含め常時） ===== */
+    /* ===== Header ===== */
     header.site-header{ position:sticky; top:0; z-index:50; background:#fff;
       border-bottom:1px solid var(--border); backdrop-filter:blur(10px); }
     .nav{ display:flex; align-items:center; justify-content:space-between; gap:16px; padding:10px 0; }
@@ -49,7 +49,7 @@
       .nav-right .btn-primary{ padding:.5rem .8rem; font-size:.95rem; }
     }
 
-    /* ===== Hero（CTAなし） ===== */
+    /* ===== Hero ===== */
     .hero{ background:linear-gradient(180deg, var(--bg), #14161a); color:#fff; padding:clamp(28px,6vw,80px) 0; }
     .hero .wrap{ display:grid; gap:20px; align-items:center; grid-template-columns:1.2fr .8fr; }
     @media (max-width:900px){ .hero .wrap{ grid-template-columns:1fr; } }
@@ -105,10 +105,6 @@
       background: color-mix(in srgb, #fff 90%, transparent); border-top:1px solid var(--border); backdrop-filter: blur(8px); }
     .banner-text{ display:flex; align-items:center; justify-content:center; text-align:center; gap:.6rem; font-weight:700; }
 
-    /* ===== Editor Host ===== */
-    .editor-host{ position:fixed; inset:0 0 0 auto; width:min(480px,100%); border-left:1px solid var(--border); background:#fff; z-index:60; box-shadow:var(--shadow-hover); display:none; }
-    .editor-host iframe{ width:100%; height:100%; border:0; }
-
     /* ===== Mobile compact for Reserve & Reviews ===== */
     @media (max-width:900px){
       #reserveForm.card{ padding:12px !important; }
@@ -130,8 +126,7 @@
     /* ★ レビュー星を金色に */
     .stars{ color:#d4af37; } /* ゴールド */
 
-
-  /* ================================
+    /* ================================
        ★ 追記：Liquid Glass（header/footerのみ・最小差分）
        ================================ */
     :root{
@@ -154,53 +149,39 @@
       .theme-liquid footer.sticky-banner{ background: inherit; }
     }
 
-/* ================================
-   Liquid Glass – sections / cards
-   （構造そのまま・見た目の液体化のみ）
-================================ */
-.theme-liquid .card{
-  background: var(--glass-bg);
-  border-color: var(--glass-stroke);
-  backdrop-filter: saturate(var(--glass-saturate)) blur(var(--glass-blur));
-  -webkit-backdrop-filter: saturate(var(--glass-saturate)) blur(var(--glass-blur));
-  box-shadow: var(--glass-shadow);
-}
-
-/* 画像付きカードの境界をうっすら強調（従来の見た目を壊さない範囲）*/
-.theme-liquid .card > img,
-.theme-liquid .card .media > img{
-  /* 画像直下に薄い線（ある場合のみ効く／DOMは変更しない） */
-  outline: 1px solid color-mix(in srgb, #ffffff 20%, transparent);
-  outline-offset: -1px; /* 枠線を箱の内側で合わせる */
-}
-
-/* 任意の箱をガラス化したい場合は、HTML側に .glassable を“追加”するだけ */
-.theme-liquid .glassable{
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-stroke);
-  backdrop-filter: saturate(var(--glass-saturate)) blur(var(--glass-blur));
-  -webkit-backdrop-filter: saturate(var(--glass-saturate)) blur(var(--glass-blur));
-  box-shadow: var(--glass-shadow);
-}
-
-/* フォールバック（非対応環境では従来どおりのソリッド表示） */
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .theme-liquid .card,
-  .theme-liquid .glassable{
-    background:#fff;
-  }
-}
-
-
-
+    .theme-liquid .card{
+      background: var(--glass-bg);
+      border-color: var(--glass-stroke);
+      backdrop-filter: saturate(var(--glass-saturate)) blur(var(--glass-blur));
+      -webkit-backdrop-filter: saturate(var(--glass-saturate)) blur(var(--glass-blur));
+      box-shadow: var(--glass-shadow);
+    }
+    .theme-liquid .card > img,
+    .theme-liquid .card .media > img{
+      outline: 1px solid color-mix(in srgb, #ffffff 20%, transparent);
+      outline-offset: -1px;
+    }
+    .theme-liquid .glassable{
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-stroke);
+      backdrop-filter: saturate(var(--glass-saturate)) blur(var(--glass-blur));
+      -webkit-backdrop-filter: saturate(var(--glass-saturate)) blur(var(--glass-blur));
+      box-shadow: var(--glass-shadow);
+    }
+    @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+      .theme-liquid .card,
+      .theme-liquid .glassable{
+        background:#fff;
+      }
+    }
   </style>
-
 </head>
+
 <body>
   <!-- Header -->
   <header class="site-header" id="siteHeader">
     <div class="container nav">
-      <div class="brand" id="brandName" title="ロゴを3回タップで編集">
+      <div class="brand" id="brandName">
         <div class="brand__logo" aria-hidden="true"></div>
         <div class="brand__name">
           <span class="line1" data-bind="brandLine1">Coffee & Restaurant</span>
@@ -333,24 +314,17 @@
 
   <!-- Footer banner -->
   <footer class="sticky-banner">
-
-
-<!-- 改訂No.003 追補：フッターバナーにポイントUI起動ボタン -->
-<div class="banner-text" style="gap:.8rem; flex-wrap:wrap;">
-  <span id="footerBannerText" data-bind="footerBannerText">HP開設キャンペーン企画実施中</span>
-  <a id="openLoyalty" class="btn-ghost" style="padding:.4rem .8rem; border-radius:999px; border:1px solid #e8eaef; cursor:pointer;">ポイント / クーポン</a>
-</div>
-
-
-
+    <!-- 改訂No.003 追補：フッターバナーにポイントUI起動ボタン -->
+    <div class="banner-text" style="gap:.8rem; flex-wrap:wrap;">
+      <span id="footerBannerText" data-bind="footerBannerText">HP開設キャンペーン企画実施中</span>
+      <a id="openLoyalty" class="btn-ghost" style="padding:.4rem .8rem; border-radius:999px; border:1px solid #e8eaef; cursor:pointer;">ポイント / クーポン</a>
+    </div>
   </footer>
 
-  <!-- 編集UIホスト -->
-  <div id="editorHost" class="editor-host">
-    <iframe src="./editor.html"></iframe>
-  </div>
-
   <script>
+    /* ------------ Public API（JSONP / CORS回避） ------------ */
+    const PUBLIC_API_URL = "https://script.google.com/macros/s/AKfycby5FA9NjNhBY8W3m4xtxB4nNR23K71iE18mUId_xHf-vJho3Nf1z7QgpABEdbdU0IezGQ/exec";
+
     /* ------------ Data ------------ */
     const DEFAULT_DATA = {
       brandColor:"#16a34a",
@@ -397,6 +371,7 @@
     /* ------------ Utils ------------ */
     const $ = (s, r=document)=>r.querySelector(s);
     const $$ = (s, r=document)=>Array.from(r.querySelectorAll(s));
+    const $H = (id)=>document.getElementById(id);
 
     /* ------------ Render ------------ */
     function applyData(d){
@@ -440,7 +415,7 @@
         menuWrap.appendChild(card);
       });
 
-      // news：日付降順にソート → 上3件＋残り
+      // news：日付降順にソート → 上3件＋残り（最大5件）
       const sortedNews = (d.news||[]).slice().sort((a,b)=> new Date(b.date||0) - new Date(a.date||0)).slice(0,5);
       const first3 = sortedNews.slice(0,3);
       const rest = sortedNews.slice(3);
@@ -458,6 +433,25 @@
       rvFirst5.forEach(rv=> revWrap.appendChild(reviewCard(rv)));
       const revMore = $('#reviewsListMore'); revMore.innerHTML='';
       rvRest.forEach(rv=> revMore.appendChild(reviewCard(rv)));
+
+      // sectionsMuted（既存DOMを変えずにクラス切替）
+      applySectionMuted(d.sectionsMuted || DEFAULT_DATA.sectionsMuted);
+    }
+
+    function applySectionMuted(m){
+      const map = {
+        reasons: '#reasons',
+        menu: '#menu',
+        news: '#news',
+        reviews: '#reviews',
+        info: '#info',
+        reserve: '#reserve'
+      };
+      Object.keys(map).forEach(k=>{
+        const el = document.querySelector(map[k]);
+        if(!el) return;
+        el.classList.toggle('is-muted', !!m[k]);
+      });
     }
 
     function newsCard(n){
@@ -480,33 +474,34 @@
     }
 
     function saveLocal(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(window.__SITE_DATA__)); }
-    const $H = (id)=>document.getElementById(id);
 
-    /* ------------ Editor Bridge & Export ------------ */
-    window.addEventListener('message', (ev)=>{
-      const { type, payload } = ev.data || {};
-      if(type==='requestData'){ ev.source.postMessage({ type:'data', payload: window.__SITE_DATA__ }, '*'); }
-      if(type==='update'){ window.__SITE_DATA__ = { ...window.__SITE_DATA__, ...payload }; applyData(window.__SITE_DATA__); saveLocal(); ev.source.postMessage({ type:'ack', payload:{ok:true}}, '*'); }
-      if(type==='export'){ const html = generateExportHTML(); const json = JSON.stringify(window.__SITE_DATA__, null, 2); ev.source.postMessage({ type:'exportResult', payload:{ html, json }}, '*'); }
-      if(type==='reset'){ window.__SITE_DATA__ = structuredClone(DEFAULT_DATA); applyData(window.__SITE_DATA__); saveLocal(); ev.source.postMessage({ type:'ack', payload:{ok:true}}, '*'); }
-      if(type==='closeEditor'){ closeEditor(); }
-    });
-    function generateExportHTML(){
-      const clone = document.documentElement.cloneNode(true);
-      const host = clone.querySelector('#editorHost'); if(host) host.remove();
-      return '<!doctype html>\n' + clone.outerHTML;
+    /* ------------ JSONP load (Public API) ------------ */
+    function loadFromPublicApi(){
+      return new Promise((resolve)=>{
+        if(!PUBLIC_API_URL){
+          resolve(); return;
+        }
+        const cb = "cb_site_" + Math.random().toString(36).slice(2);
+        window[cb] = (res)=>{
+          try{
+            if(res && res.ok && res.json){
+              const remote = JSON.parse(res.json);
+              window.__SITE_DATA__ = { ...DEFAULT_DATA, ...remote };
+              ensureReviewDates(window.__SITE_DATA__);
+              applyData(window.__SITE_DATA__);
+              saveLocal();
+            }
+          }catch(e){}
+          try{ delete window[cb]; }catch(e){}
+          resolve();
+        };
+
+        const s = document.createElement("script");
+        s.src = `${PUBLIC_API_URL}?callback=${cb}&v=${Date.now()}`;
+        s.onerror = ()=>{ try{ delete window[cb]; }catch(e){} resolve(); };
+        document.head.appendChild(s);
+      });
     }
-
-    /* ------------ Editor toggle ------------ */
-    function openEditor(){ const host = $H('editorHost'); if(!host) return; host.style.display = 'block';
-      const url = new URL(location.href); url.searchParams.set('edit','1'); history.replaceState({}, '', url); }
-    function closeEditor(){ const host = $H('editorHost'); if(!host) return; host.style.display = 'none';
-      const url = new URL(location.href); url.searchParams.delete('edit'); history.replaceState({}, '', url); }
-    (function setupTripleTap(){
-      const logo = document.querySelector('.brand'); let taps = 0; let timer = null;
-      const tap = ()=>{ taps++; if(timer) clearTimeout(timer); timer = setTimeout(()=>{ taps=0; }, 550); if(taps>=3){ taps=0; openEditor(); } };
-      logo.addEventListener('click', tap, {passive:true}); logo.addEventListener('touchend', tap, {passive:true});
-    })();
 
     /* ------------ Forms: grids（予約フォームのレイアウト） ------------ */
     const style = document.createElement('style');
@@ -545,10 +540,7 @@
       ensureReviewDates(window.__SITE_DATA__);
       applyData(window.__SITE_DATA__);
 
-      const params = new URLSearchParams(location.search);
-      if(params.get('edit')==='1'){ openEditor(); } else { closeEditor(); }
-
-      // お知らせトグル（PC/スマホ共通で常時）
+      // お知らせトグル
       const newsToggle = $H('newsToggle'), newsMore = $H('newsListMore'); let newsOpen = false;
       newsToggle.addEventListener('click', (e)=>{ e.preventDefault(); newsOpen = !newsOpen;
         newsMore.style.display = newsOpen ? 'grid' : 'none';
@@ -556,7 +548,7 @@
         newsToggle.textContent = newsOpen ? '過去のお知らせを閉じる' : '過去のお知らせも見る';
       });
 
-      // 口コミトグル（最新5件＋過去展開／最大30保持）
+      // 口コミトグル
       const rvToggle = $H('reviewsToggle'), rvMore = $H('reviewsListMore'); let rvOpen = false;
       rvToggle.addEventListener('click', (e)=>{ e.preventDefault(); rvOpen = !rvOpen;
         rvMore.style.display = rvOpen ? 'grid' : 'none';
@@ -568,9 +560,12 @@
       document.getElementById('reserveForm').addEventListener('submit', e=>{
         e.preventDefault(); alert('送信ありがとうございました！※ 実運用の送信先は編集画面で設定してください。');
       });
+
+      // Public API から最新反映（成功時は上書き）
+      loadFromPublicApi();
     })();
 
-  /* ================================
+    /* ================================
        ★ 追記：Liquid Glass 自動有効化（header/footerのみ）
        ================================ */
     (function(){
@@ -579,165 +574,104 @@
         if(supports){ document.body.classList.add('theme-liquid'); }
       }catch(e){}
     })();
-
-
-
-
   </script>
 
-<!-- 改訂No.003：ポイント/クーポン モーダル -->
-<style>
-  .loy-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.38); display:none; z-index:80; }
-  .loy-modal{ position:fixed; inset:auto 0 0 0; margin:auto; width:min(560px, calc(100% - 24px));
-    background:#fff; border:1px solid #e8eaef; border-radius:16px; box-shadow:0 18px 60px rgba(0,0,0,.18); padding:16px; z-index:81; display:none; }
-  .loy-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
-  .loy-tabs{ display:flex; gap:8px; margin:8px 0 12px; }
-  .loy-tab{ padding:.45rem .8rem; border:1px solid #e8eaef; border-radius:999px; cursor:pointer; }
-  .loy-tab[aria-selected="true"]{ background:var(--badge-bg); color:var(--badge-fg); border-color: color-mix(in srgb, var(--brand) 30%, #e8eaef); }
-  .loy-pane{ display:none; }
-  .loy-pane.active{ display:block; }
-  .loy-row{ display:flex; gap:8px; align-items:center; }
-  .loy-input{ flex:1; padding:.7rem .9rem; border:1px solid #e8eaef; border-radius:10px; }
-  .loy-btn{ padding:.7rem 1rem; border-radius:999px; border:1px solid #e8eaef; background:#fff; cursor:pointer; }
-  .loy-btn.primary{ background:var(--brand); color:#fff; border-color:transparent; }
-  .loy-progress{ height:10px; background:#f2f5f9; border-radius:999px; overflow:hidden; }
-  .loy-progress > span{ display:block; height:100%; width:0%; background:var(--brand); }
-  .loy-code{ font-family:ui-monospace, Menlo, Consolas, monospace; padding:.5rem .6rem; border:1px dashed #e8eaef; border-radius:10px; }
-</style>
+  <!-- 改訂No.003：ポイント/クーポン モーダル（この部分は別途運用） -->
+  <style>
+    .loy-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.38); display:none; z-index:80; }
+    .loy-modal{ position:fixed; inset:auto 0 0 0; margin:auto; width:min(560px, calc(100% - 24px));
+      background:#fff; border:1px solid #e8eaef; border-radius:16px; box-shadow:0 18px 60px rgba(0,0,0,.18); padding:16px; z-index:81; display:none; }
+    .loy-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .loy-tabs{ display:flex; gap:8px; margin:8px 0 12px; }
+    .loy-tab{ padding:.45rem .8rem; border:1px solid #e8eaef; border-radius:999px; cursor:pointer; }
+    .loy-tab[aria-selected="true"]{ background:var(--badge-bg); color:var(--badge-fg); border-color: color-mix(in srgb, var(--brand) 30%, #e8eaef); }
+    .loy-pane{ display:none; }
+    .loy-pane.active{ display:block; }
+    .loy-row{ display:flex; gap:8px; align-items:center; }
+    .loy-input{ flex:1; padding:.7rem .9rem; border:1px solid #e8eaef; border-radius:10px; }
+    .loy-btn{ padding:.7rem 1rem; border-radius:999px; border:1px solid #e8eaef; background:#fff; cursor:pointer; }
+    .loy-btn.primary{ background:var(--brand); color:#fff; border-color:transparent; }
+    .loy-progress{ height:10px; background:#f2f5f9; border-radius:999px; overflow:hidden; }
+    .loy-progress > span{ display:block; height:100%; width:0%; background:var(--brand); }
+    .loy-code{ font-family:ui-monospace, Menlo, Consolas, monospace; padding:.5rem .6rem; border:1px dashed #e8eaef; border-radius:10px; }
+  </style>
 
-<div class="loy-backdrop" id="loyBackdrop"></div>
-<div class="loy-modal" id="loyModal" role="dialog" aria-modal="true" aria-labelledby="loyTitle">
-  <div class="loy-head">
-    <strong id="loyTitle">ポイント & クーポン</strong>
-    <button id="loyClose" class="loy-btn" aria-label="閉じる">×</button>
-  </div>
-  <div class="loy-tabs" role="tablist">
-    <button class="loy-tab" role="tab" id="tabPoint" aria-selected="true">ポイント</button>
-    <button class="loy-tab" role="tab" id="tabCoupon" aria-selected="false">クーポン</button>
-    <button class="loy-tab" role="tab" id="tabHowto" aria-selected="false">使い方</button>
-  </div>
-
-  <div id="panePoint" class="loy-pane active" role="tabpanel" aria-labelledby="tabPoint">
-    <div class="loy-row" style="margin-bottom:8px;">
-      <input id="loyId" class="loy-input" placeholder="電話番号またはメールを入力して登録">
-      <button id="btnRegister" class="loy-btn">登録/更新</button>
+  <div class="loy-backdrop" id="loyBackdrop"></div>
+  <div class="loy-modal" id="loyModal" role="dialog" aria-modal="true" aria-labelledby="loyTitle">
+    <div class="loy-head">
+      <strong id="loyTitle">ポイント & クーポン</strong>
+      <button id="loyClose" class="loy-btn" aria-label="閉じる">×</button>
     </div>
-    <div class="loy-row" style="margin-bottom:8px;">
-      <input id="loyNonce" class="loy-input" placeholder="店内QRで自動入力（今日の合言葉）">
-      <button id="btnCheckin" class="loy-btn primary">チェックインする（1pt）</button>
+    <div class="loy-tabs" role="tablist">
+      <button class="loy-tab" role="tab" id="tabPoint" aria-selected="true">ポイント</button>
+      <button class="loy-tab" role="tab" id="tabCoupon" aria-selected="false">クーポン</button>
+      <button class="loy-tab" role="tab" id="tabHowto" aria-selected="false">使い方</button>
     </div>
-    <div class="loy-progress" title="10ptでクーポン発行"><span id="loyBar"></span></div>
-    <p id="loyStatus" class="muted" style="margin:.5rem 0 0;">ポイント: 0 / 10</p>
+
+    <div id="panePoint" class="loy-pane active" role="tabpanel" aria-labelledby="tabPoint">
+      <div class="loy-row" style="margin-bottom:8px;">
+        <input id="loyId" class="loy-input" placeholder="電話番号またはメールを入力して登録">
+        <button id="btnRegister" class="loy-btn">登録/更新</button>
+      </div>
+      <div class="loy-row" style="margin-bottom:8px;">
+        <input id="loyNonce" class="loy-input" placeholder="店内QRで自動入力（今日の合言葉）">
+        <button id="btnCheckin" class="loy-btn primary">チェックインする（1pt）</button>
+      </div>
+      <div class="loy-progress" title="10ptでクーポン発行"><span id="loyBar"></span></div>
+      <p id="loyStatus" class="muted" style="margin:.5rem 0 0;">ポイント: 0 / 10</p>
+    </div>
+
+    <div id="paneCoupon" class="loy-pane" role="tabpanel" aria-labelledby="tabCoupon">
+      <div id="couponList"><p class="muted">保有中のクーポンはありません。</p></div>
+    </div>
+
+    <div id="paneHowto" class="loy-pane" role="tabpanel" aria-labelledby="tabHowto">
+      <ol style="margin-left:1rem;">
+        <li>初回は上の欄に電話番号orメールを入れて<strong>登録</strong></li>
+        <li>来店時はレジ横の<strong>QR</strong>を読み取り、上の<strong>チェックイン</strong>を押す</li>
+        <li><strong>10pt</strong>で自動的にクーポンが発行されます</li>
+      </ol>
+      <small class="muted">※ 同日の複数チェックインはできません。</small>
+    </div>
   </div>
 
-  <div id="paneCoupon" class="loy-pane" role="tabpanel" aria-labelledby="tabCoupon">
-    <div id="couponList"><p class="muted">保有中のクーポンはありません。</p></div>
-  </div>
+  <script>
+    /* 改訂No.003：ポイントMVP 連携（この部分は別途運用） */
+    const API_BASE = '<<YOUR_GAS_EXEC_URL>>'; // 例: https://script.google.com/macros/s/xxx/exec
+    const LS_ID = 'loy_member_id';
+    const $q = (s, r=document)=>r.querySelector(s);
 
-  <div id="paneHowto" class="loy-pane" role="tabpanel" aria-labelledby="tabHowto">
-    <ol style="margin-left:1rem;">
-      <li>初回は上の欄に電話番号orメールを入れて<strong>登録</strong></li>
-      <li>来店時はレジ横の<strong>QR</strong>を読み取り、上の<strong>チェックイン</strong>を押す</li>
-      <li><strong>10pt</strong>で自動的にクーポンが発行されます</li>
-    </ol>
-    <small class="muted">※ 同日の複数チェックインはできません。</small>
-  </div>
-</div>
+    $q('#openLoyalty')?.addEventListener('click', openLoy);
+    $q('#loyClose')?.addEventListener('click', closeLoy);
+    $q('#loyBackdrop')?.addEventListener('click', closeLoy);
+    function openLoy(){ $q('#loyBackdrop').style.display='block'; $q('#loyModal').style.display='block'; initLoy(); }
+    function closeLoy(){ $q('#loyBackdrop').style.display='none'; $q('#loyModal').style.display='none'; }
 
-<script>
-  /* 改訂No.003：ポイントMVP 連携 */
-  const API_BASE = '<<YOUR_GAS_EXEC_URL>>'; // 例: https://script.google.com/macros/s/xxx/exec
-  const LS_ID = 'loy_member_id';
-  const $ = (s, r=document)=>r.querySelector(s);
-
-  // 起動/終了
-  $('#openLoyalty')?.addEventListener('click', openLoy);
-  $('#loyClose')?.addEventListener('click', closeLoy);
-  $('#loyBackdrop')?.addEventListener('click', closeLoy);
-  function openLoy(){ $('#loyBackdrop').style.display='block'; $('#loyModal').style.display='block'; initLoy(); }
-  function closeLoy(){ $('#loyBackdrop').style.display='none'; $('#loyModal').style.display='none'; }
-
-  // タブ
-  const tabs = [['tabPoint','panePoint'],['tabCoupon','paneCoupon'],['tabHowto','paneHowto']];
-  tabs.forEach(([t,p])=>{
-    $('#'+t).addEventListener('click', ()=>{
-      tabs.forEach(([tt,pp])=>{
-        $('#'+tt).setAttribute('aria-selected', tt===t ? 'true' : 'false');
-        $('#'+pp).classList.toggle('active', pp===p);
+    const tabs = [['tabPoint','panePoint'],['tabCoupon','paneCoupon'],['tabHowto','paneHowto']];
+    tabs.forEach(([t,p])=>{
+      $q('#'+t).addEventListener('click', ()=>{
+        tabs.forEach(([tt,pp])=>{
+          $q('#'+tt).setAttribute('aria-selected', tt===t ? 'true' : 'false');
+          $q('#'+pp).classList.toggle('active', pp===p);
+        });
       });
     });
-  });
 
-  // 初期化
-  async function initLoy(){
-    const id = localStorage.getItem(LS_ID) || '';
-    $('#loyId').value = id;
-    // nonce 自動セット：URL ?nonce=... があれば採用、無ければAPIから今日のnonce取得
-    const urlNonce = new URLSearchParams(location.search).get('nonce');
-    $('#loyNonce').value = urlNonce || (await fetchNonce());
-    if(id){ refreshMe(id); }
-  }
-
-  // 登録
-  $('#btnRegister')?.addEventListener('click', async ()=>{
-    const id = $('#loyId').value.trim();
-    if(!id) return alert('電話番号かメールを入力してください。');
-    const res = await fetch(API_BASE+'?path=/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({member_id:id})}).then(r=>r.json());
-    if(res.ok){ localStorage.setItem(LS_ID, id); alert('登録/更新しました。'); refreshMe(id); }
-    else alert('登録に失敗しました。'+(res.error||''));
-  });
-
-  // チェックイン
-  $('#btnCheckin')?.addEventListener('click', async ()=>{
-    const id = localStorage.getItem(LS_ID) || $('#loyId').value.trim();
-    if(!id) return alert('先に登録してください。');
-    const nonce = $('#loyNonce').value.trim();
-    if(!nonce) return alert('店内QRでnonceを入力してください。');
-    const res = await fetch(API_BASE+'?path=/checkin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({member_id:id, nonce})}).then(r=>r.json());
-    if(res.ok){
-      if(res.coupon){ alert('10pt達成！クーポンを発行しました。'); }
-      refreshMe(id);
-    }else{
-      if(res.error && String(res.error).includes('already')) alert('本日は既にチェックイン済みです。');
-      else alert('チェックインに失敗しました。'+(res.error||''));
+    async function initLoy(){
+      const id = localStorage.getItem(LS_ID) || '';
+      $q('#loyId').value = id;
+      const urlNonce = new URLSearchParams(location.search).get('nonce');
+      $q('#loyNonce').value = urlNonce || '';
+      if(id){ /* refreshMe(id); */ }
     }
-  });
 
-  async function refreshMe(id){
-    const me = await fetch(API_BASE+`?path=/me&member_id=${encodeURIComponent(id)}`).then(r=>r.json());
-    const pt = me.points||0; const mod = pt%10; const pct = (mod/10)*100;
-    $('#loyBar').style.width = pct+'%';
-    $('#loyStatus').textContent = `ポイント: ${mod} / 10（通算 ${pt}）`;
-    // クーポン
-    const c = me.coupons||[];
-    const wrap = $('#couponList');
-    wrap.innerHTML = c.length ? '' : '<p class="muted">保有中のクーポンはありません。</p>';
-    c.forEach(v=>{
-      const div = document.createElement('div'); div.className='card'; div.style.margin='8px 0'; div.innerHTML =
-        `<div class="pad"><div class="loy-row" style="justify-content:space-between;">
-           <div>
-             <div>クーポンコード</div>
-             <div class="loy-code">${v.coupon_code}</div>
-             <small class="muted">有効期限: ${formatDate(v.expires_at)}</small>
-           </div>
-           <div><!-- 将来：QR表示をここに --></div>
-         </div></div>`;
-      wrap.appendChild(div);
+    $q('#btnRegister')?.addEventListener('click', async ()=>{
+      alert('このポイント機能は別途運用です（LPの本件DB反映とは別）。');
     });
-  }
 
-  async function fetchNonce(){
-    try{
-      const r = await fetch(API_BASE+'?path=/nonce').then(r=>r.json());
-      return r.nonce || '';
-    }catch(e){ return ''; }
-  }
-  function formatDate(d){
-    try{ const dt = new Date(d); return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`; }
-    catch(e){ return String(d); }
-  }
-</script>
-
-
+    $q('#btnCheckin')?.addEventListener('click', async ()=>{
+      alert('このポイント機能は別途運用です（LPの本件DB反映とは別）。');
+    });
+  </script>
 </body>
 </html>
